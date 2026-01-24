@@ -4,7 +4,7 @@ Implements mechanisms to restrict responses to knowledge base only
 """
 
 import re
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from .similarity_search import RetrievalSystem
 
 

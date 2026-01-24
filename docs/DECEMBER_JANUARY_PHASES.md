@@ -221,7 +221,7 @@ print(f"Optimal batch size: {result['optimal_batch_size']}")
 from src.llm_integration import OllamaLLM
 
 llm = OllamaLLM(
-    model_name="llama3.2",  # or "llama4" when available
+    model_name="llama3.2:latest",  # or "llama4" when available
     base_url="http://localhost:11434",
     temperature=0.2,
     max_tokens=512
@@ -391,7 +391,7 @@ from src.complete_rag_system import create_complete_rag_system
 rag_system = create_complete_rag_system(
     embedding_model="all-MiniLM-L6-v2",
     vector_db_type="faiss",
-    llm_model="llama3.2"
+    llm_model="llama3.2:latest"
 )
 
 # Build from data

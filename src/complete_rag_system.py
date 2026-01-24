@@ -26,7 +26,7 @@ class CompleteRAGSystem:
     def __init__(self,
                  embedding_model_name: str = "all-MiniLM-L6-v2",
                  vector_db_type: str = "faiss",
-                 llm_model_name: str = "llama3.2",
+                 llm_model_name: str = "llama3.2:latest",
                  ollama_base_url: str = "http://localhost:11434",
                  use_gpu: bool = False):
         """
@@ -117,7 +117,8 @@ class CompleteRAGSystem:
                        file_path: Optional[str] = None,
                        chunk_size: int = 512,
                        chunk_overlap: int = 50,
-                       save_path: Optional[str] = None):
+                       save_path: Optional[str] = None,
+                       max_chunks: Optional[int] = None):
         """
         Build the RAG system from raw data.
         
@@ -127,6 +128,7 @@ class CompleteRAGSystem:
             chunk_size: Chunk size
             chunk_overlap: Chunk overlap
             save_path: Path to save vector database
+            max_chunks: Optional limit on number of chunks to embed (useful for large corpora)
         """
         print("\n" + "="*70)
         print("BUILDING RAG SYSTEM FROM DATA")
@@ -152,6 +154,10 @@ class CompleteRAGSystem:
             chunk_overlap=chunk_overlap
         )
         
+        if max_chunks is not None and len(df_chunks) > max_chunks:
+            print(f"⚠️  Limiting chunks from {len(df_chunks)} to {max_chunks} for stability") # 
+            df_chunks = df_chunks.iloc[:max_chunks].reset_index(drop=True)
+        
         # 3. Generate embeddings
         print("\n🧠 Generating embeddings...")
         embeddings = self.embedding_model.encode(
@@ -173,7 +179,15 @@ class CompleteRAGSystem:
         
         # 5. Add to vector database
         print("\n💾 Adding to vector database...")
-        self.vector_db.add_vectors(embeddings, metadata)
+        #self.vector_db.add_vectors(embeddings, metadata)  # adds vectors to the DB at once
+        # Modified to add in batches to avoid potential memory issues
+        batch_size = 10_000
+
+        for i in range(0, len(embeddings), batch_size):
+            self.vector_db.add_vectors(
+                embeddings[i:i+batch_size],
+                metadata[i:i+batch_size]
+            )
         self.vector_db.chunks_df = df_chunks
         
         # 6. Save if requested
@@ -228,7 +242,7 @@ class CompleteRAGSystem:
 def create_complete_rag_system(
     embedding_model: str = "all-MiniLM-L6-v2",
     vector_db_type: str = "faiss",
-    llm_model: str = "llama3.2",
+    llm_model: str = "  llama3.2:latest",
     use_gpu: bool = False
 ) -> CompleteRAGSystem:
     """
@@ -249,4 +263,3 @@ def create_complete_rag_system(
         llm_model_name=llm_model,
         use_gpu=use_gpu
     )
-

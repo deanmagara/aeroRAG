@@ -79,7 +79,7 @@ from src.complete_rag_system import create_complete_rag_system
 rag_system = create_complete_rag_system(
     embedding_model="all-MiniLM-L6-v2",
     vector_db_type="faiss",
-    llm_model="llama3.2"
+    llm_model="llama3.2:latest"
 )
 
 # Build from data (or load from saved)

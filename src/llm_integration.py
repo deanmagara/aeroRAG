@@ -6,6 +6,7 @@ Configures LLaMA4 with Ollama framework for offline operation
 import time
 from typing import Optional, Dict, List, Any
 import json
+from urllib import response
 
 try:
     import ollama
@@ -16,8 +17,8 @@ except ImportError:
 
 try:
     from langchain_community.llms import Ollama
-    from langchain.callbacks.manager import CallbackManager
-    from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
+    from langchain_core.callbacks import CallbackManager
+    from langchain_core.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
     LANGCHAIN_OLLAMA_AVAILABLE = True
 except ImportError:
     LANGCHAIN_OLLAMA_AVAILABLE = False
@@ -29,7 +30,7 @@ class OllamaLLM:
     Wrapper for Ollama LLM integration with LLaMA4 support.
     """
     
-    def __init__(self, model_name: str = "llama3.2", 
+    def __init__(self, model_name: str = "llama3.2:latest", 
                  base_url: str = "http://localhost:11434",
                  temperature: float = 0.2,
                  max_tokens: Optional[int] = None):
@@ -37,7 +38,7 @@ class OllamaLLM:
         Initialize Ollama LLM.
         
         Args:
-            model_name: Name of the model (e.g., "llama3.2", "llama4" when available)
+            model_name: Name of the model (e.g., "llama3.2:latest", "llama4" when available)
             base_url: Ollama API base URL
             temperature: Sampling temperature (0.0-1.0)
             max_tokens: Maximum tokens to generate (None for model default)
@@ -59,9 +60,11 @@ class OllamaLLM:
     def _check_connection(self) -> None:
         """Check if Ollama is running and model is available."""
         try:
-            # List available models
-            models = ollama.list()
-            model_names = [m['name'] for m in models.get('models', [])]
+            # Get the response object
+            response = ollama.list()
+            
+            # FIX: Extract names using the .model attribute from the .models list
+            model_names = [m.model for m in response.models]
             
             if self.model_name not in model_names:
                 print(f"   ⚠️  Model '{self.model_name}' not found in Ollama.")
@@ -69,10 +72,12 @@ class OllamaLLM:
                 print(f"   Pull model with: ollama pull {self.model_name}")
             else:
                 print(f"   ✅ Model '{self.model_name}' is available")
+                
         except Exception as e:
-            print(f"   ⚠️  Could not connect to Ollama at {self.base_url}")
+            # If any error occurs (including connection), it prints here
+            print(f"   ⚠️  Connection or Parsing Error at {self.base_url}")
             print(f"   Error: {e}")
-            print(f"   Make sure Ollama is running: ollama serve")
+
     
     def generate(self, prompt: str, 
                 temperature: Optional[float] = None,
@@ -164,8 +169,8 @@ class LangChainOllamaLLM:
     """
     LangChain wrapper for Ollama (alternative interface).
     """
-    
-    def __init__(self, model_name: str = "llama3.2",
+
+    def __init__(self, model_name: str = "llama3.2:latest",
                  temperature: float = 0.2,
                  streaming: bool = False):
         """

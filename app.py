@@ -12,7 +12,7 @@ def load_rag_system():
         rag_system = create_complete_rag_system(
             embedding_model="all-MiniLM-L6-v2",
             vector_db_type="faiss",
-            llm_model="llama3.2"
+            llm_model="llama3.2:latest",
         )
         
         # Load from saved embeddings
