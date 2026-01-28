@@ -237,16 +237,7 @@ class RetrievalSystem:
                 include_metadata: bool = True,
                 format_context: bool = True) -> Dict:
         """
-        Retrieve relevant documents and format context.
-        
-        Args:
-            query: Query text
-            k: Number of documents to retrieve
-            include_metadata: Whether to include metadata in results
-            format_context: Whether to format retrieved chunks as context
-            
-        Returns:
-            Dictionary with retrieved documents and formatted context
+        Retrieve relevant documents and format context with numbered citations.
         """
         # Perform search
         results = self.search_engine.search(query, k=k)
@@ -255,14 +246,17 @@ class RetrievalSystem:
         context_parts = []
         sources = []
         
-        for result in results:
+        for i, result in enumerate(results):
             chunk_text = result.get('chunk_text', '')
             title = result.get('title', 'Unknown')
             doc_id = result.get('document_id', '')
             
+            # OPTION B FIX: Number the sources so the LLM can cite them as [1], [2], etc.
             if format_context:
                 context_parts.append(
-                    f"[Document: {title}]\n{chunk_text}\n"
+                    f"SOURCE [{i+1}]\n"
+                    f"Document Title: {title}\n"
+                    f"Text: {chunk_text}\n"
                 )
             
             if include_metadata:
@@ -271,7 +265,7 @@ class RetrievalSystem:
                     'document_id': doc_id,
                     'chunk_id': result.get('chunk_id'),
                     'similarity': result.get('similarity', 0),
-                    'rank': result.get('rank', 0)
+                    'rank': i + 1
                 })
         
         context = "\n".join(context_parts) if format_context else ""
@@ -286,14 +280,7 @@ class RetrievalSystem:
     
     def retrieve_with_deduplication(self, query: str, k: int = 5) -> Dict:
         """
-        Retrieve documents with deduplication by document_id.
-        
-        Args:
-            query: Query text
-            k: Target number of unique documents
-            
-        Returns:
-            Dictionary with deduplicated results
+        Retrieve documents with deduplication and numbered formatting.
         """
         # Get more results to account for deduplication
         results = self.search_engine.search(query, k=k*3)
@@ -310,12 +297,13 @@ class RetrievalSystem:
                 if len(unique_results) >= k:
                     break
         
-        # Format context
+        # Format context with numbering for Option B
         context_parts = []
-        for result in unique_results:
+        for i, result in enumerate(unique_results):
             context_parts.append(
-                f"[Document: {result.get('title', 'Unknown')}]\n"
-                f"{result.get('chunk_text', '')}\n"
+                f"SOURCE [{i+1}]\n"
+                f"Document Title: {result.get('title', 'Unknown')}\n"
+                f"Text: {result.get('chunk_text', '')}\n"
             )
         
         return {

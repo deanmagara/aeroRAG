@@ -33,14 +33,21 @@ class RAGPipeline:
         
         # Default context template
         if context_template is None:
-            self.context_template = """Use the following NASA STI documents to answer the question. If the answer cannot be found in the documents, say "I don't have information about this in the NASA STI database."
+            self.context_template = """You are a NASA technical assistant. Use the following NASA STI documents to answer the question accurately. 
 
-Documents:
-{context}
+        ### RULES:
+        1. Use ONLY the provided documents to answer. 
+        2. You MUST include a citation for every claim using the document number in brackets, e.g., [1] or [2].
+        3. If the answer is not in the documents, say "I don't have information about this in the NASA STI database."
+        4. Be concise and technical. Avoid uncertainty markers like "maybe" or "perhaps."
 
-Question: {query}
+        ### DOCUMENTS:
+        {context}
 
-Answer:"""
+        ### QUESTION: 
+        {query}
+
+        ### ANSWER:"""
         else:
             self.context_template = context_template
     

@@ -25,17 +25,17 @@ def example_build_and_query():
     
     # 2. Build from data (or load from saved)
     # Option A: Build from data
-    rag_system.build_from_data(
-        data_source="file",
-        file_path="ntrs-public-metadata.json",
-        chunk_size=512,
-        chunk_overlap=50,
-        max_chunks=100000, # Limit for stability in example
-        save_path="data/embeddings/ntrs_rag"
-    )
+    # rag_system.build_from_data(
+    #     data_source="file",
+    #     file_path="ntrs-public-metadata.json",
+    #     chunk_size=512,
+    #     chunk_overlap=50,
+    #     max_chunks=400000, # Limit for stability in example
+    #     save_path="data/embeddings/ntrs_rag"
+    # )
     
     # Option B: Load from saved
-    #rag_system.load_from_saved("data/embeddings/ntrs_rag")
+    rag_system.load_from_saved("data/embeddings/ntrs_rag")
     
     # 3. Query the system
     print("\n" + "="*70)
@@ -163,10 +163,10 @@ if __name__ == "__main__":
     # Uncomment the example you want to run:
     
     # Example 1: Build and query
-    #example_build_and_query()
+    example_build_and_query()
     
     # Example 2: Conversational RAG
-    example_conversational_rag()
+    #example_conversational_rag()
     
     # Example 3: Performance benchmarking
     # example_performance_benchmarking()
