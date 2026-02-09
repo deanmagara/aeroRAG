@@ -38,3 +38,9 @@ Thumbs.db
 
 # Logs
 *.log
+
+#examples
+example_complete_rag.py
+example_usage.py
+IMPLEMENTATION_COMPLETE.md
+script.ipynb

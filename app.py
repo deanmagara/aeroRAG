@@ -66,6 +66,7 @@ if st.button("Run Query"):
                     temperature=temperature,
                     max_tokens=max_tokens,
                     use_grounding=use_grounding
+                    #min_confidence=0.2  # Try lowering this from the default 0.5
                 )
                 
                 answer = response.get('answer', 'No response returned.')
