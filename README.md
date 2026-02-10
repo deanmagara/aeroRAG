@@ -2,33 +2,6 @@
 
 An offline Retrieval-Augmented Generation (RAG) system for NASA Scientific and Technical Information (STI) Repository data, designed to work with locally deployed LLaMA4 models via Ollama.
 
-## Project Timeline
-
-### September (20 hours)
-- ✅ Environment Setup & Architecture Design
-- ✅ Data Acquisition & Exploration
-- ✅ Model Research & Selection
-
-### October (20 hours)
-- ✅ Data Processing Pipeline
-- ✅ Chunking Strategy Implementation
-- ✅ Pipeline Documentation
-
-### November (20 hours)
-- ✅ Embedding System
-- ✅ Embedding Optimization
-- ✅ Initial Dataset Processing
-
-### December (20 hours)
-- ✅ Vector Database Creation (FAISS/ChromaDB)
-- ✅ Similarity Search Development
-- ✅ Database Performance Tuning
-
-### January (20 hours)
-- ✅ LLaMA4-Ollama Integration
-- ✅ RAG Pipeline Assembly
-- ✅ Hallucination Prevention
-
 ## Features
 
 - **Data Acquisition**: Download and process NASA STI Repository NDJSON datasets
