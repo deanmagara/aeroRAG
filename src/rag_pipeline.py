@@ -7,7 +7,7 @@ import time
 from typing import Dict, List, Optional, Any
 from .similarity_search import RetrievalSystem
 from .llm_integration import OllamaLLM
-
+from .domainConfig import AerospacePrompts  # NEW: Import domain config
 
 class RAGPipeline:
     """
@@ -17,37 +17,17 @@ class RAGPipeline:
     def __init__(self, retrieval_system: RetrievalSystem,
                  llm: OllamaLLM,
                  context_template: Optional[str] = None,
-                 max_context_length: int = 2000):
+                 max_context_length: int = 2500): # Increased context window
         """
         Initialize RAG pipeline.
-        
-        Args:
-            retrieval_system: RetrievalSystem instance
-            llm: OllamaLLM instance
-            context_template: Template for formatting context (None for default)
-            max_context_length: Maximum characters in context
         """
         self.retrieval_system = retrieval_system
         self.llm = llm
         self.max_context_length = max_context_length
         
-        # Default context template
+        # NEW: Use Aerospace System Prompt by default
         if context_template is None:
-            self.context_template = """You are a NASA technical assistant. Use the following NASA STI documents to answer the question accurately. 
-
-        ### RULES:
-        1. Use ONLY the provided documents to answer. 
-        2. You MUST include a citation for every claim using the document number in brackets, e.g., [1] or [2].
-        3. If the answer is not in the documents, say "I don't have information about this in the NASA STI database."
-        4. Be concise and technical. Avoid uncertainty markers like "maybe" or "perhaps."
-
-        ### DOCUMENTS:
-        {context}
-
-        ### QUESTION: 
-        {query}
-
-        ### ANSWER:"""
+            self.context_template = AerospacePrompts.DEFAULT_SYSTEM_PROMPT
         else:
             self.context_template = context_template
     
@@ -59,17 +39,6 @@ class RAGPipeline:
              deduplicate: bool = True) -> Dict[str, Any]:
         """
         Execute complete RAG query pipeline.
-        
-        Args:
-            query: User query
-            k: Number of documents to retrieve
-            temperature: LLM temperature (None for default)
-            max_tokens: Maximum tokens to generate (None for default)
-            include_sources: Whether to include source documents in response
-            deduplicate: Whether to deduplicate by document_id
-            
-        Returns:
-            Dictionary with answer, sources, and metadata
         """
         start_time = time.time()
         
@@ -105,38 +74,25 @@ class RAGPipeline:
         response = {
             'query': query,
             'answer': answer.strip(),
-            'retrieval_time': retrieval_result.get('search_time', 0),
-            'generation_time': total_time - retrieval_result.get('search_time', 0),
+            'retrieval_time': retrieval_result.get('search_time', 0), # Note: caching might remove this key if not careful, handled by decorator logic if needed
+            'generation_time': total_time,
             'total_time': total_time,
-            'num_sources': retrieval_result.get('num_unique_documents', 
-                                               retrieval_result.get('num_results', 0))
+            'num_sources': len(retrieval_result.get('sources', []))
         }
         
         if include_sources:
             response['sources'] = retrieval_result.get('sources', [])
-            response['context'] = context  # Include for debugging
+            response['context'] = context
         
         return response
     
+    # ... (Rest of class query_with_validation, batch_query remain same) ...
     def query_with_validation(self, query: str,
                              k: int = 5,
                              min_similarity: float = 0.3,
                              temperature: Optional[float] = None,
                              max_tokens: Optional[int] = None) -> Dict[str, Any]:
-        """
-        Query with similarity threshold validation.
-        
-        Args:
-            query: User query
-            k: Number of documents to retrieve
-            min_similarity: Minimum similarity score for retrieved documents
-            temperature: LLM temperature
-            max_tokens: Maximum tokens to generate
-            
-        Returns:
-            Response dictionary, or None if no relevant documents found
-        """
-        # Retrieve with similarity threshold
+        """Query with similarity threshold validation."""
         results = self.retrieval_system.search_engine.search(
             query, 
             k=k, 
@@ -152,115 +108,49 @@ class RAGPipeline:
                 'reason': 'no_relevant_documents'
             }
         
-        # Continue with normal query
         return self.query(query, k=k, temperature=temperature, max_tokens=max_tokens)
-    
-    def batch_query(self, queries: List[str],
-                   k: int = 5,
-                   temperature: Optional[float] = None) -> List[Dict[str, Any]]:
-        """
-        Process multiple queries in batch.
-        
-        Args:
-            queries: List of queries
-            k: Number of documents per query
-            temperature: LLM temperature
-            
-        Returns:
-            List of response dictionaries
-        """
+
+    def batch_query(self, queries: List[str], k: int = 5, temperature: Optional[float] = None) -> List[Dict[str, Any]]:
         results = []
         for query in queries:
             result = self.query(query, k=k, temperature=temperature)
             results.append(result)
         return results
 
-
 class ConversationalRAG:
-    """
-    RAG pipeline with conversation history support.
-    """
-    
-    def __init__(self, rag_pipeline: RAGPipeline,
-                 max_history: int = 5):
-        """
-        Initialize conversational RAG.
-        
-        Args:
-            rag_pipeline: RAGPipeline instance
-            max_history: Maximum conversation turns to keep in history
-        """
+    """RAG pipeline with conversation history support."""
+    def __init__(self, rag_pipeline: RAGPipeline, max_history: int = 5):
         self.rag_pipeline = rag_pipeline
         self.max_history = max_history
         self.conversation_history = []
     
-    def chat(self, query: str,
-            k: int = 5,
-            temperature: Optional[float] = None,
-            include_history: bool = True) -> Dict[str, Any]:
-        """
-        Chat with conversation history.
+    def chat(self, query: str, k: int = 5, temperature: Optional[float] = None, include_history: bool = True) -> Dict[str, Any]:
+        self.conversation_history.append({'role': 'user', 'content': query})
         
-        Args:
-            query: User query
-            k: Number of documents to retrieve
-            temperature: LLM temperature
-            include_history: Whether to include conversation history in context
-            
-        Returns:
-            Response dictionary
-        """
-        # Add user message to history
-        self.conversation_history.append({
-            'role': 'user',
-            'content': query
-        })
-        
-        # Build context-aware query
         if include_history and len(self.conversation_history) > 1:
-            # Include recent conversation context
             recent_history = self.conversation_history[-(self.max_history*2):-1]
             context_query = self._build_contextual_query(query, recent_history)
         else:
             context_query = query
         
-        # Execute RAG query
-        response = self.rag_pipeline.query(
-            context_query,
-            k=k,
-            temperature=temperature
-        )
+        response = self.rag_pipeline.query(context_query, k=k, temperature=temperature)
+        self.conversation_history.append({'role': 'assistant', 'content': response['answer']})
         
-        # Add assistant response to history
-        self.conversation_history.append({
-            'role': 'assistant',
-            'content': response['answer']
-        })
-        
-        # Trim history if too long
         if len(self.conversation_history) > self.max_history * 2:
             self.conversation_history = self.conversation_history[-(self.max_history*2):]
         
         response['conversation_turn'] = len(self.conversation_history) // 2
         return response
     
-    def _build_contextual_query(self, current_query: str,
-                               history: List[Dict]) -> str:
-        """Build query with conversation context."""
+    def _build_contextual_query(self, current_query: str, history: List[Dict]) -> str:
         context_parts = []
         for msg in history:
-            role = msg['role']
-            content = msg['content']
-            context_parts.append(f"{role.capitalize()}: {content}")
-        
+            context_parts.append(f"{msg['role'].capitalize()}: {msg['content']}")
         context = "\n".join(context_parts)
         return f"Previous conversation:\n{context}\n\nCurrent question: {current_query}"
     
     def clear_history(self):
-        """Clear conversation history."""
         self.conversation_history = []
     
     def get_history(self) -> List[Dict]:
-        """Get conversation history."""
         return self.conversation_history.copy()
-

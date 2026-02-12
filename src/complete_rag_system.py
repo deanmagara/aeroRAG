@@ -242,7 +242,7 @@ class CompleteRAGSystem:
 def create_complete_rag_system(
     embedding_model: str = "all-MiniLM-L6-v2",
     vector_db_type: str = "faiss",
-    llm_model: str = "  llama3.2:latest",
+    llm_model: str = "llama3.2:latest",
     use_gpu: bool = False
 ) -> CompleteRAGSystem:
     """
